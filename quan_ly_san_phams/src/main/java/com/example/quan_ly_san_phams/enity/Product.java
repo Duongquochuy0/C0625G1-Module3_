@@ -25,8 +25,6 @@ public class Product {
         this.description = description;
         this.categoryId = categoryId;
     }
-
-    // Getter - Setter
     public int getId() {
         return id;
     }

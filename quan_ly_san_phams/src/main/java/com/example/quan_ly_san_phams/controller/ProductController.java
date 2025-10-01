@@ -70,22 +70,40 @@ public class ProductController extends HttpServlet {
             throws ServletException, IOException {
         String searchName = request.getParameter("name");
         String searchCategory = request.getParameter("categoryId");
-
-        List<ProductDto> products;
-        if ((searchName != null && !searchName.isEmpty()) ||
-                (searchCategory != null && !searchCategory.isEmpty())) {
-            products = productService.search(searchName, searchCategory);
-        } else {
-            products = productService.findAll();
+        int page = 1;
+        int recordsPerPage = 5;
+        String pageParam = request.getParameter("page");
+        if (pageParam != null) {
+            try {
+                page = Integer.parseInt(pageParam);
+            } catch (NumberFormatException e) {
+                page = 1;
+            }
         }
+        List<ProductDto> products;
+        int totalRecords;
+        if ((searchName != null && !searchName.isEmpty()) || (searchCategory != null && !searchCategory.isEmpty())) {
+            products = productService.search(searchName, searchCategory);
+            totalRecords = products.size();
+        } else {
+            totalRecords = productService.countProducts();
+            int offset = (page - 1) * recordsPerPage;
+            products = productService.findAll(offset, recordsPerPage);
+        }
+        int totalPages = (int) Math.ceil((double) totalRecords / recordsPerPage);
         List<Category> categories = categoryService.findAll();
+        int startIndex = (page - 1) * recordsPerPage;
         request.setAttribute("products", products);
         request.setAttribute("categories", categories);
         request.setAttribute("selectedCategory", searchCategory);
         request.setAttribute("searchName", searchName);
+        request.setAttribute("currentPage", page);
+        request.setAttribute("totalPages", totalPages);
+        request.setAttribute("startIndex", startIndex);
 
         request.getRequestDispatcher("views/product/list.jsp").forward(request, response);
     }
+
     private void showCreateForm(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         List<Category> categories = categoryService.findAll();

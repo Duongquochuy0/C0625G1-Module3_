@@ -12,9 +12,6 @@ import java.util.List;
 
 public class CategoryRepository implements ICategoryRepository{
     private static final String SELECT_ALL_CATEGORY = "SELECT id, name FROM category";
-    private static final String ADD = "insert into users (name, email, country) value(?,?,?)";
-    private  static final String DELETE_SQL = "DELETE FROM users WHERE id = ?";
-    private static final String UPDATE_SQL = "UPDATE users SET name = ?, email = ?, country = ? WHERE id = ?";
     @Override
     public List<Category> findAll() {
         List<Category> categories = new ArrayList<>();

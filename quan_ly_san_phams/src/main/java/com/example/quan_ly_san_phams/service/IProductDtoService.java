@@ -13,5 +13,6 @@ public interface IProductDtoService {
     ProductDto findById(int id);
     List<ProductDto> search(String name, String categoryId);
     Product findByIdProduct(int id);
-
+    List<ProductDto> findAll(int offset, int limit);
+    int countProducts();
 }

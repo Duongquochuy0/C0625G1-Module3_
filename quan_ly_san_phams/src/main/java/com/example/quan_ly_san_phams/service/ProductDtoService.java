@@ -41,4 +41,12 @@ public class ProductDtoService implements IProductDtoService {
     public Product findByIdProduct(int id) {
         return productDtoRepository.findByIdProduct(id);
     }
+    @Override
+    public List<ProductDto> findAll(int offset, int limit) {
+        return productDtoRepository.findAll(offset, limit);
+    }
+    @Override
+    public int countProducts() {
+        return productDtoRepository.countProducts();
+    }
 }
