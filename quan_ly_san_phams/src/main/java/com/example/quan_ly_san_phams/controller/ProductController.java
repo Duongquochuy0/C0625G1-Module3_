@@ -161,8 +161,22 @@ public class ProductController extends HttpServlet {
 
     private void deleteProduct(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        int id = Integer.parseInt(request.getParameter("id"));
+        int id = Integer.parseInt(request.getParameter("id").trim());
         productService.delete(id);
-        response.sendRedirect("/products");
+        String searchName = request.getParameter("name");
+        String categoryId = request.getParameter("categoryId");
+        String page = request.getParameter("page");
+        StringBuilder redirectUrl = new StringBuilder("/products?deleted=true");
+        if (searchName != null && !searchName.isEmpty()) {
+            redirectUrl.append("&name=").append(searchName);
+        }
+        if (categoryId != null && !categoryId.isEmpty()) {
+            redirectUrl.append("&categoryId=").append(categoryId);
+        }
+        if (page != null && !page.isEmpty()) {
+            redirectUrl.append("&page=").append(page);
+        }
+
+        response.sendRedirect(redirectUrl.toString());
     }
 }

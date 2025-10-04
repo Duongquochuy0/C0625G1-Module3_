@@ -19,8 +19,7 @@
             <select name="categoryId" class="form-select">
                 <option value="">Tất cả danh mục</option>
                 <c:forEach var="c" items="${categories}">
-                    <option value="${c.id}"
-                            <c:if test="${c.id == selectedCategory}">selected</c:if>>
+                    <option value="${c.id}" <c:if test="${c.id == selectedCategory}">selected</c:if>>
                             ${c.name}
                     </option>
                 </c:forEach>
@@ -31,7 +30,6 @@
             <a href="/products" class="btn btn-secondary">Reset</a>
         </div>
     </form>
-
     <a href="/products?action=create" class="btn btn-success mb-3">Thêm sản phẩm</a>
     <table class="table table-bordered table-striped">
         <thead>
@@ -50,15 +48,17 @@
             <tr>
                 <td>${startIndex + status.index + 1}</td>
                 <td>${p.name}</td>
-                <td><fmt:setLocale value="vi_VN"/>
-                    <fmt:formatNumber value="${p.price}" type="currency" groupingUsed="true"/></td>
+                <td>
+                    <fmt:setLocale value="vi_VN"/>
+                    <fmt:formatNumber value="${p.price}" type="currency" groupingUsed="true"/>
+                </td>
                 <td>${p.quantity}</td>
                 <td>${p.description}</td>
                 <td>${p.categoryName}</td>
                 <td>
                     <a href="/products?action=edit&id=${p.id}" class="btn btn-primary btn-sm">Sửa</a>
                     <a href="/products?action=delete&id=${p.id}" class="btn btn-danger btn-sm"
-                       onclick="return confirm('Bạn có chắc muốn xóa không?');">Xóa</a>
+                       onclick="return confirmDelete(event, this);">Xóa</a>
                 </td>
             </tr>
         </c:forEach>
@@ -68,11 +68,45 @@
         <ul class="pagination">
             <c:forEach var="i" begin="1" end="${totalPages}">
                 <li class="page-item ${i == currentPage ? 'active' : ''}">
-                    <a class="page-link" href="/products?page=${i}&name=${searchName}&categoryId=${selectedCategory}">${i}</a>
+                    <a class="page-link"
+                       href="/products?page=${i}&name=${searchName}&categoryId=${selectedCategory}">${i}</a>
                 </li>
             </c:forEach>
         </ul>
     </nav>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function confirmDelete(event, element) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'Bạn có chắc muốn xóa?',
+            text: "Hành động này không thể hoàn tác!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = element.href;
+            }
+        });
+        return false;
+    }
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('deleted') === 'true') {
+        Swal.fire({
+            toast: true,
+            icon: 'success',
+            title: 'Đã xóa sản phẩm',
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true
+        });
+    }
+</script>
 </body>
 </html>

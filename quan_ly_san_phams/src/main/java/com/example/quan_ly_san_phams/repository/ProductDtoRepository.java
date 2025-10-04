@@ -199,7 +199,7 @@ public class ProductDtoRepository implements IProductDtoRepository {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return productList;
+       return productList;
     }
     public int countProducts() {
         String sql = "SELECT COUNT(*) AS total FROM product";

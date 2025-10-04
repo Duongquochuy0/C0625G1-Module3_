@@ -9,7 +9,7 @@
 <h1><%= "Hello World!" %>
 </h1>
 <br/>
-<a href="${pageContext.request.contextPath}/discount">Bấm vào đây</a>
+<a href="${pageContext.request.contextPath}/views/pawn_contract/list.jsp">Bấm vào đây</a>
 
 
 </body>
