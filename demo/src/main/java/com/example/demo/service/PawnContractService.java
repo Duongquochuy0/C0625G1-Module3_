@@ -1,20 +1,57 @@
 package com.example.demo.service;
 
 import com.example.demo.dto.PawnContractDto;
+import com.example.demo.entity.PawnContract;
 import com.example.demo.repository.IPawnContractRepository;
 import com.example.demo.repository.PawnContractRepository;
 
 import java.util.List;
 
 public class PawnContractService implements IPawnContractService{
-    private IPawnContractRepository repository;
+    private final IPawnContractRepository pawnContractRepository = new PawnContractRepository();
 
-    public PawnContractService() {
-        this.repository = new PawnContractRepository(); // Dùng implementation JDBC
+    @Override
+    public List<PawnContractDto> findAll() {
+        return pawnContractRepository.findAll();
     }
 
     @Override
-    public List<PawnContractDto> getAllContracts() {
-        return repository.getAll();
+    public boolean add(PawnContract pawnContract) {
+        return pawnContractRepository.add(pawnContract);
+    }
+
+    @Override
+    public boolean delete(int id) {
+        return pawnContractRepository.delete(id);
+    }
+
+    @Override
+    public boolean update(PawnContract pawnContract) {
+        return pawnContractRepository.update(pawnContract);
+    }
+
+    @Override
+    public PawnContractDto findById(int id) {
+        return pawnContractRepository.findById(id);
+    }
+
+    @Override
+    public List<PawnContractDto> search(String customerName, String employeeName, String productName) {
+        return pawnContractRepository.search(customerName, employeeName, productName);
+    }
+
+    @Override
+    public PawnContract findByIdProduct(int id) {
+        return pawnContractRepository.findByIdProduct(id);
+    }
+
+    @Override
+    public List<PawnContractDto> findAll(int offset, int limit) {
+        return pawnContractRepository.findAll(offset, limit);
+    }
+
+    @Override
+    public int countPawnContract() {
+        return pawnContractRepository.countPawnContract();
     }
 }
