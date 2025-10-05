@@ -2,250 +2,286 @@ package com.example.baitap1.repository;
 
 import com.example.baitap1.dto.PawnContractDto;
 import com.example.baitap1.entity.PawnContract;
-
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 public class PawnContractRepository implements IPawnContractRepository {
 
-    private static final String SELECT_ALL_DTO =
-            "SELECT pc.pawn_contract_id, pc.pawn_price, pc.interest_rate, pc.pawn_date, pc.due_date, pc.return_date, " +
-                    "c.full_name AS customer_name, e.full_name AS employee_name, p.product_name " +
-                    "FROM pawn_contract pc " +
-                    "JOIN customer c ON pc.customer_id = c.customer_id " +
-                    "JOIN employee e ON pc.employee_id = e.employee_id " +
-                    "JOIN product p ON pc.product_id = p.product_id";
-
-    private static final String INSERT_CONTRACT =
-            "INSERT INTO pawn_contract (customer_id, employee_id, product_id, pawn_date, pawn_price, interest_rate, due_date, return_date) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
-    private static final String UPDATE_CONTRACT =
-            "UPDATE pawn_contract SET customer_id=?, employee_id=?, product_id=?, pawn_date=?, pawn_price=?, interest_rate=?, due_date=?, return_date=? " +
-                    "WHERE pawn_contract_id=?";
-
-    private static final String DELETE_CONTRACT =
-            "DELETE FROM pawn_contract WHERE pawn_contract_id=?";
-
-    private static final String SELECT_BY_ID = SELECT_ALL_DTO + " WHERE pc.pawn_contract_id=?";
-
-    private static final String SEARCH_CONTRACT =
-            "SELECT pc.pawn_contract_id, pc.pawn_price, pc.interest_rate, pc.pawn_date, pc.due_date, pc.return_date, " +
-                    "c.full_name AS customer_name, e.full_name AS employee_name, p.product_name " +
-                    "FROM pawn_contract pc " +
-                    "JOIN customer c ON pc.customer_id = c.customer_id " +
-                    "JOIN employee e ON pc.employee_id = e.employee_id " +
-                    "JOIN product p ON pc.product_id = p.product_id " +
-                    "WHERE c.full_name LIKE ? AND e.full_name LIKE ? AND p.product_name LIKE ?";
-
     @Override
     public List<PawnContractDto> findAll() {
-        List<PawnContractDto> list = new ArrayList<>();
-        try (Connection conn = BaseRepository.getConnectDB();
-             PreparedStatement ps = conn.prepareStatement(SELECT_ALL_DTO);
-             ResultSet rs = ps.executeQuery()) {
+        List<PawnContractDto> result = new ArrayList<>();
+        String sql = "SELECT pc.pawn_contract_id, c.`full_name` AS customer_name, e.`full_name` AS employee_name, " +
+                "p.product_name, pc.pawn_date, pc.pawn_price, pc.interest_rate, pc.due_date, pc.return_date, " +
+                "CASE WHEN pc.return_date IS NOT NULL THEN 'CLOSED' " +
+                "WHEN EXISTS (SELECT 1 FROM liquidation_contract lc WHERE lc.product_id = pc.product_id) THEN 'LIQUIDATED' " +
+                "ELSE 'ACTIVE' END AS status " +
+                "FROM pawn_contract pc " +
+                "LEFT JOIN customer c ON pc.customer_id = c.customer_id " +
+                "LEFT JOIN employee e ON pc.employee_id = e.employee_id " +
+                "LEFT JOIN product p ON pc.product_id = p.product_id " +
+                "ORDER BY pc.pawn_contract_id DESC";
 
+        try (Connection conn = BaseRepository.getConnectDB();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                list.add(mapResultSetToDto(rs));
+                result.add(mapToPawnContractDto(rs));
             }
         } catch (SQLException e) {
+            System.err.println("Lỗi SQL trong findAll: " + e.getMessage());
             e.printStackTrace();
+            throw new RuntimeException("Lỗi khi lấy danh sách hợp đồng cầm: " + e.getMessage());
         }
-        return list;
+        return result;
     }
 
     @Override
     public boolean add(PawnContract pawnContract) {
+        String sql = "INSERT INTO pawn_contract (customer_id, employee_id, product_id, pawn_date, pawn_price, interest_rate, due_date, return_date) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = BaseRepository.getConnectDB();
-             PreparedStatement ps = conn.prepareStatement(INSERT_CONTRACT)) {
-
-            ps.setInt(1, pawnContract.getCustomerId());
-            ps.setInt(2, pawnContract.getEmployeeId());
-            ps.setInt(3, pawnContract.getProductId());
-            ps.setDate(4, Date.valueOf(pawnContract.getPawnDate()));
-            ps.setBigDecimal(5, pawnContract.getPawnPrice());
-            ps.setBigDecimal(6, pawnContract.getInterestRate());
-            ps.setDate(7, Date.valueOf(pawnContract.getDueDate()));
-            if (pawnContract.getReturnDate() != null) {
-                ps.setDate(8, Date.valueOf(pawnContract.getReturnDate()));
-            } else {
-                ps.setNull(8, Types.DATE);
-            }
-
-            return ps.executeUpdate() > 0;
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, pawnContract.getCustomerId());
+            stmt.setInt(2, pawnContract.getEmployeeId());
+            stmt.setInt(3, pawnContract.getProductId());
+            stmt.setObject(4, pawnContract.getPawnDate());
+            stmt.setBigDecimal(5, pawnContract.getPawnPrice());
+            stmt.setBigDecimal(6, pawnContract.getInterestRate());
+            stmt.setObject(7, pawnContract.getDueDate());
+            stmt.setObject(8, pawnContract.getReturnDate());
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
         } catch (SQLException e) {
+            System.err.println("Lỗi SQL trong add: " + e.getMessage());
             e.printStackTrace();
-            return false;
+            throw new RuntimeException("Lỗi khi thêm hợp đồng cầm: " + e.getMessage());
         }
     }
 
     @Override
     public boolean delete(int id) {
+        String sql = "DELETE FROM pawn_contract WHERE pawn_contract_id = ?";
         try (Connection conn = BaseRepository.getConnectDB();
-             PreparedStatement ps = conn.prepareStatement(DELETE_CONTRACT)) {
-
-            ps.setInt(1, id);
-            return ps.executeUpdate() > 0;
-
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
         } catch (SQLException e) {
+            System.err.println("Lỗi SQL trong delete: " + e.getMessage());
             e.printStackTrace();
-            return false;
+            throw new RuntimeException("Lỗi khi xóa hợp đồng cầm: " + e.getMessage());
         }
     }
 
     @Override
     public boolean update(PawnContract pawnContract) {
+        String sql = "UPDATE pawn_contract SET customer_id = ?, employee_id = ?, product_id = ?, " +
+                "pawn_date = ?, pawn_price = ?, interest_rate = ?, due_date = ?, return_date = ? " +
+                "WHERE pawn_contract_id = ?";
         try (Connection conn = BaseRepository.getConnectDB();
-             PreparedStatement ps = conn.prepareStatement(UPDATE_CONTRACT)) {
-
-            ps.setInt(1, pawnContract.getCustomerId());
-            ps.setInt(2, pawnContract.getEmployeeId());
-            ps.setInt(3, pawnContract.getProductId());
-            ps.setDate(4, Date.valueOf(pawnContract.getPawnDate()));
-            ps.setBigDecimal(5, pawnContract.getPawnPrice());
-            ps.setBigDecimal(6, pawnContract.getInterestRate());
-            ps.setDate(7, Date.valueOf(pawnContract.getDueDate()));
-            if (pawnContract.getReturnDate() != null) {
-                ps.setDate(8, Date.valueOf(pawnContract.getReturnDate()));
-            } else {
-                ps.setNull(8, Types.DATE);
-            }
-            ps.setInt(9, pawnContract.getPawnContractId());
-
-            return ps.executeUpdate() > 0;
-
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, pawnContract.getCustomerId());
+            stmt.setInt(2, pawnContract.getEmployeeId());
+            stmt.setInt(3, pawnContract.getProductId());
+            stmt.setObject(4, pawnContract.getPawnDate());
+            stmt.setBigDecimal(5, pawnContract.getPawnPrice());
+            stmt.setBigDecimal(6, pawnContract.getInterestRate());
+            stmt.setObject(7, pawnContract.getDueDate());
+            stmt.setObject(8, pawnContract.getReturnDate());
+            stmt.setInt(9, pawnContract.getPawnContractId());
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
         } catch (SQLException e) {
+            System.err.println("Lỗi SQL trong update: " + e.getMessage());
             e.printStackTrace();
-            return false;
+            throw new RuntimeException("Lỗi khi cập nhật hợp đồng cầm: " + e.getMessage());
         }
     }
 
     @Override
     public PawnContractDto findById(int id) {
+        String sql = "SELECT pc.pawn_contract_id, c.`full_name` AS customer_name, e.`full_name` AS employee_name, " +
+                "p.product_name, pc.pawn_date, pc.pawn_price, pc.interest_rate, pc.due_date, pc.return_date, " +
+                "CASE WHEN pc.return_date IS NOT NULL THEN 'CLOSED' " +
+                "WHEN EXISTS (SELECT 1 FROM liquidation_contract lc WHERE lc.product_id = pc.product_id) THEN 'LIQUIDATED' " +
+                "ELSE 'ACTIVE' END AS status " +
+                "FROM pawn_contract pc " +
+                "LEFT JOIN customer c ON pc.customer_id = c.customer_id " +
+                "LEFT JOIN employee e ON pc.employee_id = e.employee_id " +
+                "LEFT JOIN product p ON pc.product_id = p.product_id " +
+                "WHERE pc.pawn_contract_id = ?";
         try (Connection conn = BaseRepository.getConnectDB();
-             PreparedStatement ps = conn.prepareStatement(SELECT_BY_ID)) {
-
-            ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return mapResultSetToDto(rs);
+                    return mapToPawnContractDto(rs);
                 }
+                return null;
             }
-
         } catch (SQLException e) {
+            System.err.println("Lỗi SQL trong findById: " + e.getMessage());
             e.printStackTrace();
+            throw new RuntimeException("Lỗi khi tìm hợp đồng cầm theo ID: " + e.getMessage());
         }
-        return null;
     }
 
     @Override
     public List<PawnContractDto> search(String customerName, String employeeName, String productName) {
-        List<PawnContractDto> list = new ArrayList<>();
+        List<PawnContractDto> result = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+                "SELECT pc.pawn_contract_id, c.`full_name` AS customer_name, e.`full_name` AS employee_name, " +
+                        "p.product_name, pc.pawn_date, pc.pawn_price, pc.interest_rate, pc.due_date, pc.return_date, " +
+                        "CASE WHEN pc.return_date IS NOT NULL THEN 'CLOSED' " +
+                        "WHEN EXISTS (SELECT 1 FROM liquidation_contract lc WHERE lc.product_id = pc.product_id) THEN 'LIQUIDATED' " +
+                        "ELSE 'ACTIVE' END AS status " +
+                        "FROM pawn_contract pc " +
+                        "LEFT JOIN customer c ON pc.customer_id = c.customer_id " +
+                        "LEFT JOIN employee e ON pc.employee_id = e.employee_id " +
+                        "LEFT JOIN product p ON pc.product_id = p.product_id WHERE 1=1");
+        List<String> params = new ArrayList<>();
+
+        if (customerName != null && !customerName.trim().isEmpty()) {
+            sql.append(" AND c.`full_name` LIKE ?");
+            params.add("%" + customerName + "%");
+        }
+        if (employeeName != null && !employeeName.trim().isEmpty()) {
+            sql.append(" AND e.`full_name` LIKE ?");
+            params.add("%" + employeeName + "%");
+        }
+        if (productName != null && !productName.trim().isEmpty()) {
+            sql.append(" AND p.product_name LIKE ?");
+            params.add("%" + productName + "%");
+        }
+        sql.append(" ORDER BY pc.pawn_contract_id DESC");
+
         try (Connection conn = BaseRepository.getConnectDB();
-             PreparedStatement ps = conn.prepareStatement(SEARCH_CONTRACT)) {
-
-            ps.setString(1, "%" + (customerName == null ? "" : customerName) + "%");
-            ps.setString(2, "%" + (employeeName == null ? "" : employeeName) + "%");
-            ps.setString(3, "%" + (productName == null ? "" : productName) + "%");
-
-            try (ResultSet rs = ps.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                stmt.setString(i + 1, params.get(i));
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    list.add(mapResultSetToDto(rs));
+                    result.add(mapToPawnContractDto(rs));
                 }
             }
-
         } catch (SQLException e) {
+            System.err.println("Lỗi SQL trong search: " + e.getMessage());
             e.printStackTrace();
+            throw new RuntimeException("Lỗi khi tìm kiếm hợp đồng cầm: " + e.getMessage());
         }
-        return list;
+        return result;
     }
 
     @Override
     public PawnContract findByIdProduct(int id) {
-        String sql = "SELECT * FROM pawn_contract WHERE product_id=?";
+        String sql = "SELECT pc.pawn_contract_id, pc.customer_id, pc.employee_id, pc.product_id, pc.pawn_date, " +
+                "pc.pawn_price, pc.interest_rate, pc.due_date, pc.return_date " +
+                "FROM pawn_contract pc WHERE pc.product_id = ?";
         try (Connection conn = BaseRepository.getConnectDB();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    PawnContract pc = new PawnContract();
-                    pc.setPawnContractId(rs.getInt("pawn_contract_id"));
-                    pc.setCustomerId(rs.getInt("customer_id"));
-                    pc.setEmployeeId(rs.getInt("employee_id"));
-                    pc.setProductId(rs.getInt("product_id"));
-                    pc.setPawnDate(rs.getDate("pawn_date").toLocalDate());
-                    pc.setPawnPrice(rs.getBigDecimal("pawn_price"));
-                    pc.setInterestRate(rs.getBigDecimal("interest_rate"));
-                    pc.setDueDate(rs.getDate("due_date").toLocalDate());
-                    Date returnDate = rs.getDate("return_date");
-                    if (returnDate != null) pc.setReturnDate(returnDate.toLocalDate());
-                    return pc;
+                    return mapToPawnContract(rs);
                 }
+                return null;
             }
-
         } catch (SQLException e) {
+            System.err.println("Lỗi SQL trong findByIdProduct: " + e.getMessage());
             e.printStackTrace();
+            throw new RuntimeException("Lỗi khi tìm hợp đồng cầm theo ID sản phẩm: " + e.getMessage());
         }
-        return null;
     }
 
     @Override
     public List<PawnContractDto> findAll(int offset, int limit) {
-        List<PawnContractDto> list = new ArrayList<>();
-        String sql = SELECT_ALL_DTO + " LIMIT ? OFFSET ?";
+        List<PawnContractDto> result = new ArrayList<>();
+        String sql = "SELECT pc.pawn_contract_id, c.`full_name` AS customer_name, e.`full_name` AS employee_name, " +
+                "p.product_name, pc.pawn_date, pc.pawn_price, pc.interest_rate, pc.due_date, pc.return_date, " +
+                "CASE WHEN pc.return_date IS NOT NULL THEN 'CLOSED' " +
+                "WHEN EXISTS (SELECT 1 FROM liquidation_contract lc WHERE lc.product_id = pc.product_id) THEN 'LIQUIDATED' " +
+                "ELSE 'ACTIVE' END AS status " +
+                "FROM pawn_contract pc " +
+                "LEFT JOIN customer c ON pc.customer_id = c.customer_id " +
+                "LEFT JOIN employee e ON pc.employee_id = e.employee_id " +
+                "LEFT JOIN product p ON pc.product_id = p.product_id " +
+                "ORDER BY pc.pawn_contract_id DESC " +
+                "LIMIT ? OFFSET ?";
         try (Connection conn = BaseRepository.getConnectDB();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, limit);
-            ps.setInt(2, offset);
-
-            try (ResultSet rs = ps.executeQuery()) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, limit);
+            stmt.setInt(2, offset);
+            try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    list.add(mapResultSetToDto(rs));
+                    result.add(mapToPawnContractDto(rs));
                 }
             }
-
         } catch (SQLException e) {
+            System.err.println("Lỗi SQL trong findAll(offset, limit): " + e.getMessage());
             e.printStackTrace();
+            throw new RuntimeException("Lỗi khi lấy danh sách hợp đồng cầm với phân trang: " + e.getMessage());
         }
-        return list;
+        return result;
     }
 
     @Override
     public int countPawnContract() {
-        String sql = "SELECT COUNT(*) AS total FROM pawn_contract";
+        String sql = "SELECT COUNT(*) FROM pawn_contract";
         try (Connection conn = BaseRepository.getConnectDB();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            if (rs.next()) return rs.getInt("total");
-
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            return 0;
         } catch (SQLException e) {
+            System.err.println("Lỗi SQL trong countPawnContract: " + e.getMessage());
             e.printStackTrace();
+            throw new RuntimeException("Lỗi khi đếm số lượng hợp đồng cầm: " + e.getMessage());
         }
-        return 0;
     }
 
-    // ================= Helper =================
-    private PawnContractDto mapResultSetToDto(ResultSet rs) throws SQLException {
-        PawnContractDto dto = new PawnContractDto();
-        dto.setPawnContractId(rs.getInt("pawn_contract_id"));
-        dto.setPawnPrice(rs.getBigDecimal("pawn_price"));
-        dto.setInterestRate(rs.getBigDecimal("interest_rate"));
-        dto.setPawnDate(rs.getDate("pawn_date").toLocalDate());
-        dto.setDueDate(rs.getDate("due_date").toLocalDate());
-        Date returnDate = rs.getDate("return_date");
-        if (returnDate != null) dto.setReturnDate(returnDate.toLocalDate());
-        dto.setCustomerName(rs.getString("customer_name"));
-        dto.setEmployeeName(rs.getString("employee_name"));
-        dto.setProductName(rs.getString("product_name"));
+    private PawnContractDto mapToPawnContractDto(ResultSet rs) throws SQLException {
+        return new PawnContractDto(
+                rs.getInt("pawn_contract_id"),
+                rs.getString("customer_name"),
+                rs.getString("employee_name"),
+                rs.getString("product_name"),
+                rs.getDate("pawn_date") != null ? rs.getDate("pawn_date").toLocalDate() : null,
+                rs.getBigDecimal("pawn_price"),
+                rs.getBigDecimal("interest_rate"),
+                rs.getDate("due_date") != null ? rs.getDate("due_date").toLocalDate() : null,
+                rs.getDate("return_date") != null ? rs.getDate("return_date").toLocalDate() : null,
+                rs.getString("status")
+        );
+    }
 
-        // Status: ACTIVE nếu chưa trả, CLOSED nếu đã trả
-        if (dto.getReturnDate() == null) dto.setContractStatus("ACTIVE");
-        else dto.setContractStatus("CLOSED");
+    private PawnContract mapToPawnContract(ResultSet rs) throws SQLException {
+        return new PawnContract(
+                rs.getInt("pawn_contract_id"),
+                rs.getInt("customer_id"),
+                rs.getInt("employee_id"),
+                rs.getInt("product_id"),
+                rs.getDate("pawn_date") != null ? rs.getDate("pawn_date").toLocalDate() : null,
+                rs.getBigDecimal("pawn_price"),
+                rs.getBigDecimal("interest_rate"),
+                rs.getDate("due_date") != null ? rs.getDate("due_date").toLocalDate() : null,
+                rs.getDate("return_date") != null ? rs.getDate("return_date").toLocalDate() : null
+        );
+    }
 
-        return dto;
+    public static void main(String[] args) {
+        PawnContractRepository repo = new PawnContractRepository();
+        List<PawnContractDto> list = repo.findAll();
+        System.out.println("Số hợp đồng: " + list.size());
+        for (PawnContractDto c : list) {
+            System.out.println(c.getPawnContractId() + " - " + c.getCustomerName());
+        }
     }
 }

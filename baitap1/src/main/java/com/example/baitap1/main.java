@@ -8,7 +8,7 @@ import java.util.List;
 public class main {
     public static void main(String[] args) {
         PawnContractRepository repo = new PawnContractRepository();
-        List<PawnContractDto> contracts = repo.findAllDto();
+        List<PawnContractDto> contracts = repo.findAll();
         System.out.println("Số hợp đồng: " + contracts.size());
         contracts.forEach(System.out::println);
     }

@@ -12,18 +12,18 @@ public class PawnContractService implements IPawnContractService {
     private final IPawnContractRepository pawnContractRepository = new PawnContractRepository();
 
     @Override
-    public List<PawnContract> findAll() {
+    public List<PawnContractDto> findAll() {
         return pawnContractRepository.findAll();
     }
 
     @Override
-    public List<PawnContractDto> findAllDto() {
-        return pawnContractRepository.findAllDto();
+    public boolean add(PawnContract pawnContract) {
+        return pawnContractRepository.add(pawnContract);
     }
 
     @Override
-    public boolean save(PawnContract pawnContract) {
-        return pawnContractRepository.save(pawnContract);
+    public boolean delete(int id) {
+        return pawnContractRepository.delete(id);
     }
 
     @Override
@@ -32,12 +32,27 @@ public class PawnContractService implements IPawnContractService {
     }
 
     @Override
-    public boolean delete(int pawnContractId) {
-        return pawnContractRepository.delete(pawnContractId);
+    public PawnContractDto findById(int id) {
+        return pawnContractRepository.findById(id);
     }
 
     @Override
     public List<PawnContractDto> search(String customerName, String employeeName, String productName) {
         return pawnContractRepository.search(customerName, employeeName, productName);
+    }
+
+    @Override
+    public PawnContract findByIdProduct(int id) {
+        return pawnContractRepository.findByIdProduct(id);
+    }
+
+    @Override
+    public List<PawnContractDto> findAll(int offset, int limit) {
+        return pawnContractRepository.findAll(offset, limit);
+    }
+
+    @Override
+    public int countPawnContract() {
+        return pawnContractRepository.countPawnContract();
     }
 }
