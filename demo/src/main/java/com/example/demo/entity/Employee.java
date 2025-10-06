@@ -13,7 +13,6 @@ public class Employee {
     private String email;
     private String citizenNumber;
 
-    // Constructor không có ID (dùng khi tạo mới)
     public Employee(int accountId, String fullName, LocalDate dob, String phoneNumber,
                     BigDecimal salary, String email, String citizenNumber) {
         this.accountId = accountId;
@@ -25,7 +24,6 @@ public class Employee {
         this.citizenNumber = citizenNumber;
     }
 
-    // Constructor có ID (dùng khi lấy từ DB)
     public Employee(int employeeId, int accountId, String fullName, LocalDate dob, String phoneNumber,
                     BigDecimal salary, String email, String citizenNumber) {
         this.employeeId = employeeId;
@@ -38,7 +36,6 @@ public class Employee {
         this.citizenNumber = citizenNumber;
     }
 
-    // Getter & Setter
     public int getEmployeeId() { return employeeId; }
     public void setEmployeeId(int employeeId) { this.employeeId = employeeId; }
 

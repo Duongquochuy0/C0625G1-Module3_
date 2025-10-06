@@ -7,7 +7,7 @@ import jakarta.servlet.annotation.WebListener;
 import java.util.Timer;
 import java.util.TimerTask;
 
-@WebListener  // ⚠️ PHẢI CÓ CÁI NÀY
+@WebListener
 public class SchedulerListener implements ServletContextListener {
     private Timer timer;
 

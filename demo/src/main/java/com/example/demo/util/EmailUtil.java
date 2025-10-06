@@ -8,8 +8,8 @@ import java.util.Properties;
 
 public class EmailUtil {
 
-    private static final String FROM_EMAIL = "huyduong031101@gmail.com";
-    private static final String FROM_PASSWORD = "fzyp bekj iyvk qeza"; // app password
+    private static final String FROM_EMAIL = "huyduong03111@gmail.com";
+    private static final String FROM_PASSWORD = "fzyp bekj iyvk qeza";
 
     public static void sendEmail(String toEmail, String subject, String content) {
         try {
@@ -25,13 +25,11 @@ public class EmailUtil {
                     return new PasswordAuthentication(FROM_EMAIL, FROM_PASSWORD);
                 }
             });
-
-            // <-- dùng MimeMessage (không dùng Message) để có overload charset
             MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress(FROM_EMAIL, "Tiệm Cầm Đồ", "UTF-8"));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
             message.setSubject(subject, "UTF-8");
-            message.setText(content, "UTF-8"); // nội dung plain text với UTF-8
+            message.setText(content, "UTF-8");
 
             Transport.send(message);
             System.out.println("✅ Email sent successfully to: " + toEmail);

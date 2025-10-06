@@ -10,7 +10,6 @@ public class Account {
     private String passwordHash;
     private Role role;
 
-    // Constructor không có ID (dùng khi tạo mới)
     public Account(String username, String passwordHash, Role role) {
         if (username == null || username.trim().isEmpty()) {
             throw new IllegalArgumentException("Username không được để trống");

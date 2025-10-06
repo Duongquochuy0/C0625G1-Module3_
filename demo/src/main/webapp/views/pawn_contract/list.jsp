@@ -8,22 +8,18 @@
   <title>Danh sách hợp đồng cầm đồ</title>
   <link href="${pageContext.request.contextPath}/bootstrap520/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* Hover animation cho nút thao tác */
     .btn-action {
       transition: transform 0.2s;
     }
     .btn-action:hover {
       transform: scale(1.1);
     }
-    /* Gradient badge trạng thái */
     .badge-active { background: linear-gradient(90deg, #36D1DC, #5B86E5); color:white; }
     .badge-closed { background: linear-gradient(90deg, #43e97b, #38f9d7); color:white; }
     .badge-liquidated { background: linear-gradient(90deg, #f85032, #e73827); color:white; }
   </style>
 </head>
 <body class="container mt-5">
-
-<!-- Header + nút home -->
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h2 class="mb-0">📄 Danh sách hợp đồng cầm đồ</h2>
   <a href="${pageContext.request.contextPath}/home" class="btn btn-primary">🏠 Quay về Home</a>
@@ -46,8 +42,6 @@
     <button type="submit" class="btn btn-primary w-100">🔍 Tìm</button>
   </div>
 </form>
-
-<!-- Thêm hợp đồng mới -->
 <div class="mb-3">
   <a href="${pageContext.request.contextPath}/pawn-contracts?action=create" class="btn btn-success">➕ Thêm hợp đồng mới</a>
 </div>
@@ -109,7 +103,6 @@
       </tbody>
     </table>
 
-    <!-- Phân trang -->
     <nav aria-label="Page navigation">
       <ul class="pagination justify-content-center">
         <c:forEach begin="1" end="${totalPages}" var="i">
